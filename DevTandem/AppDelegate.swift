@@ -6,15 +6,42 @@
 //
 
 import UIKit
+import FirebaseCore
+import os
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-
+    private let logger = Logger(subsystem: "com.devtandem.app", category: "AppDelegate")
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        configureFirebase()
         return true
+    }
+
+    // MARK: - Firebase
+
+    /// Inicializa Firebase validando antes que exista el archivo de configuración.
+    /// Si falta, la app no se cae: registra el error y en desarrollo detiene la ejecución con un mensaje claro.
+    private func configureFirebase() {
+        guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else {
+            logger.error("Falta GoogleService-Info.plist en el bundle. Pídelo al equipo (Drive) y ponlo en la carpeta DevTandem.")
+            assertionFailure("Falta GoogleService-Info.plist")
+            return
+        }
+
+        FirebaseApp.configure()
+
+        guard let options = FirebaseApp.app()?.options else {
+            logger.error("FirebaseApp.configure() se ejecutó pero no se pudo leer la configuración.")
+            return
+        }
+
+        logger.info("Firebase configurado. projectID: \(options.projectID ?? "desconocido", privacy: .public)")
+
+        if options.databaseURL == nil {
+            logger.error("El plist no trae DATABASE_URL: vuelve a descargar GoogleService-Info.plist después de crear la Realtime Database.")
+        }
     }
 
     // MARK: UISceneSession Lifecycle
@@ -31,6 +58,4 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
 
-
 }
-
