@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="25408" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="mmK-LF-LpO">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="25408" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="0jf-Qz-KtQ">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="25407"/>
@@ -10,22 +10,171 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Login View Controller-->
+        <scene sceneID="zhz-uL-r8A">
+            <objects>
+                <navigationController id="0jf-Qz-KtQ" sceneMemberID="viewController">
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="mS0-49-uWh">
+                        <rect key="frame" x="0" y="48" width="414" height="44"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <nil name="viewControllers"/>
+                    <connections>
+                        <segue destination="BYZ-38-t0r" kind="relationship" relationship="rootViewController" id="TOp-ec-mYu"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="z3c-O1-Ame" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-600" y="131"/>
+        </scene>
         <scene sceneID="tne-QT-ifu">
             <objects>
                 <viewController id="BYZ-38-t0r" customClass="LoginViewController" customModule="DevTandem" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Uuj-Sa-Yqr" userLabel="scrollView">
+                                <rect key="frame" x="0" y="48" width="414" height="814"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="28" translatesAutoresizingMaskIntoConstraints="NO" id="nO8-ey-FyO" userLabel="contentStack">
+                                        <rect key="frame" x="0" y="0" width="366" height="100"/>
+                                        <subviews>
+                                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="center" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="NKN-OX-hM9" userLabel="headerStack">
+                                                <rect key="frame" x="0" y="0" width="366" height="100"/>
+                                                <subviews>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="Nut-zU-xmP" userLabel="logoImageView">
+                                                        <rect key="frame" x="123" y="0" width="120" height="120"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="120" id="QOB-Wz-b0s"/>
+                                                            <constraint firstAttribute="height" constant="120" id="dMZ-Q3-G9w"/>
+                                                        </constraints>
+                                                    </imageView>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="DevTándem" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="eVq-fn-xp8">
+                                                        <rect key="frame" x="0.0" y="0.0" width="318" height="26.5"/>
+                                                        <fontDescription key="fontDescription" style="UICTFontTextStyleTitle1"/>
+                                                        <color key="textColor" name="AccentColor"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Talento junior, respaldo senior" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="a6J-mB-9LU" translatesAutoresizingMaskIntoConstraints="NO">
+                                                        <rect key="frame" x="0.0" y="32.5" width="318" height="38"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                        <fontDescription key="fontDescription" style="UICTFontTextStyleSubhead"/>
+                                                        <color key="textColor" systemColor="secondaryLabelColor"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                </subviews>
+                                            </stackView>
+                                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="14" translatesAutoresizingMaskIntoConstraints="NO" id="MUn-Zw-TEy" userLabel="formStack">
+                                                <rect key="frame" x="0" y="0" width="366" height="100"/>
+                                                <subviews>
+                                                    <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Correo Electronico" textAlignment="natural" adjustsFontForContentSizeCategory="YES" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="ZpE-an-sMG" customClass="PaddedTextField" customModule="DevTandem" customModuleProvider="target" userLabel="emailField">
+                                                        <rect key="frame" x="0.0" y="64" width="318" height="50"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="50" id="keO-st-anI"/>
+                                                        </constraints>
+                                                        <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
+                                                        <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" keyboardType="emailAddress" textContentType="email"/>
+                                                    </textField>
+                                                    <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Contraseña" textAlignment="natural" adjustsFontForContentSizeCategory="YES" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="rb8-cu-9aN" customClass="PaddedTextField" customModule="DevTandem" customModuleProvider="target" userLabel="passwordField">
+                                                        <rect key="frame" x="0.0" y="128" width="318" height="50"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="50" id="1Y1-0D-pcP"/>
+                                                        </constraints>
+                                                        <fontDescription key="fontDescription" style="UICTFontTextStyleBody"/>
+                                                        <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" secureTextEntry="YES" textContentType="password"/>
+                                                    </textField>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="trailing" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="glr-Dx-Ugd" userLabel="forgotPasswordButton">
+                                                        <rect key="frame" x="0.0" y="1468.5" width="318" height="34.5"/>
+                                                        <state key="normal" title="¿Olvidaste tu contraseña?"/>
+                                                        <buttonConfiguration key="configuration" style="plain" title="¿Olvidaste tu contraseña?"/>
+                                                        <connections>
+                                                            <action selector="forgotPasswordTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ebF-QN-ZJn"/>
+                                                        </connections>
+                                                    </button>
+                                                    <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="Cfy-uI-DKk" userLabel="rememberStack">
+                                                        <rect key="frame" x="0" y="0" width="366" height="100"/>
+                                                        <subviews>
+                                                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="4nK-fb-LIj" userLabel="rememberEmailSwitch">
+                                                                <rect key="frame" x="0" y="0" width="51" height="31"/>
+                                                            </switch>
+                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Recordar mi correo" textAlignment="natural" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="LqE-4e-vBN" userLabel="rememberLabel" translatesAutoresizingMaskIntoConstraints="NO">
+                                                                <rect key="frame" x="0.0" y="32.5" width="318" height="38"/>
+                                                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                                <fontDescription key="fontDescription" style="UICTFontTextStyleFootnote"/>
+                                                                <color key="textColor" systemColor="secondaryLabelColor"/>
+                                                                <nil key="highlightedColor"/>
+                                                            </label>
+                                                        </subviews>
+                                                    </stackView>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="IIo-v9-7dH" userLabel="errorLabel">
+                                                        <rect key="frame" x="0.0" y="1352.5" width="318" height="16"/>
+                                                        <fontDescription key="fontDescription" style="UICTFontTextStyleFootnote"/>
+                                                        <color key="textColor" systemColor="systemRedColor"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iRb-uL-tsU" userLabel="loginButton">
+                                                        <rect key="frame" x="0.0" y="1392.5" width="318" height="52"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="52" id="Kmu-uF-eZ1"/>
+                                                        </constraints>
+                                                        <state key="normal" title="Iniciar sesión"/>
+                                                        <buttonConfiguration key="configuration" style="filled" title="Iniciar sesión" cornerStyle="large">
+                                                            <color key="baseForegroundColor" name="OnAccent"/>
+                                                            <color key="baseBackgroundColor" name="AccentColor"/>
+                                                        </buttonConfiguration>
+                                                        <connections>
+                                                            <action selector="loginTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="7in-Y7-fvh"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                            </stackView>
+                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3Yv-tJ-cp4" userLabel="createAccountButton">
+                                                <rect key="frame" x="0.0" y="1468.5" width="318" height="34.5"/>
+                                                <state key="normal" title="¿No tienes cuenta? Crea una aquí"/>
+                                                <buttonConfiguration key="configuration" style="plain" title="¿No tienes cuenta? Crea una aquí"/>
+                                                <connections>
+                                                    <segue destination="mmK-LF-LpO" kind="show" identifier="showRegister" id="QOF-EB-FVF"/>
+                                                </connections>
+                                            </button>
+                                        </subviews>
+                                    </stackView>
+                                </subviews>
+                                <viewLayoutGuide key="contentLayoutGuide" id="2FG-tL-19z"/>
+                                <viewLayoutGuide key="frameLayoutGuide" id="527-6O-68G"/>
+                                <constraints>
+                                    <constraint firstItem="nO8-ey-FyO" firstAttribute="top" secondItem="2FG-tL-19z" secondAttribute="top" constant="32" id="JU4-Ux-6N0"/>
+                                    <constraint firstItem="nO8-ey-FyO" firstAttribute="leading" secondItem="2FG-tL-19z" secondAttribute="leading" constant="24" id="yI8-r2-cnR"/>
+                                    <constraint firstItem="2FG-tL-19z" firstAttribute="bottom" secondItem="nO8-ey-FyO" secondAttribute="bottom" constant="32" id="JER-2V-eRe"/>
+                                    <constraint firstItem="2FG-tL-19z" firstAttribute="trailing" secondItem="nO8-ey-FyO" secondAttribute="trailing" constant="24" id="fjQ-uY-HNo"/>
+                                    <constraint firstItem="nO8-ey-FyO" firstAttribute="width" secondItem="527-6O-68G" secondAttribute="width" constant="-48" id="aVM-zp-VQn"/>
+                                </constraints>
+                            </scrollView>
+                        </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="Uuj-Sa-Yqr" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="5TM-eD-9Bs"/>
+                            <constraint firstItem="Uuj-Sa-Yqr" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="o8d-wU-IuL"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Uuj-Sa-Yqr" secondAttribute="trailing" id="nhV-Pl-ct1"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="Uuj-Sa-Yqr" secondAttribute="bottom" id="fnw-Nl-Ov1"/>
+                        </constraints>
                     </view>
+                    <navigationItem key="navigationItem" id="SP1-5W-hyn"/>
+                    <connections>
+                        <outlet property="scrollView" destination="Uuj-Sa-Yqr" id="bxy-Ay-N8D"/>
+                        <outlet property="emailField" destination="ZpE-an-sMG" id="edt-nK-sLg"/>
+                        <outlet property="passwordField" destination="rb8-cu-9aN" id="4M0-JF-Mty"/>
+                        <outlet property="rememberEmailSwitch" destination="4nK-fb-LIj" id="jEO-6f-xpM"/>
+                        <outlet property="errorLabel" destination="IIo-v9-7dH" id="OYn-Ny-w5Y"/>
+                        <outlet property="loginButton" destination="iRb-uL-tsU" id="95I-6L-UZz"/>
+                        <outlet property="forgotPasswordButton" destination="glr-Dx-Ugd" id="Zbn-k1-kgV"/>
+                        <outlet property="createAccountButton" destination="3Yv-tJ-cp4" id="st0-a6-63f"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="141" y="131"/>
         </scene>
-        <!--Register View Controller-->
         <scene sceneID="Qby-e9-3XW">
             <objects>
                 <viewController storyboardIdentifier="RegisterViewController" useStoryboardIdentifierAsRestorationIdentifier="YES" id="mmK-LF-LpO" customClass="RegisterViewController" customModule="DevTandem" customModuleProvider="target" sceneMemberID="viewController">
@@ -350,6 +499,7 @@
         </scene>
     </scenes>
     <resources>
+        <image name="Logo" width="449" height="478"/>
         <namedColor name="AccentColor">
             <color red="0.11372549019607843" green="0.2627450980392157" blue="0.44313725490196076" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
