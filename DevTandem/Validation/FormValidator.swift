@@ -118,7 +118,7 @@ nonisolated enum FormValidator {
 
         var company = ""
         do throws(ValidationError) {
-            company = try FieldValidators.requiredText(form.company, emptyError: .emptyCompany)
+            company = try FieldValidators.normalizedCompany(form.company)
         } catch {
             errors.append(error)
         }

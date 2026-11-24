@@ -27,6 +27,7 @@ nonisolated enum FormField: Equatable, Hashable {
 /// Un error de validación de un campo, con su mensaje en español.
 nonisolated enum ValidationError: LocalizedError, Equatable {
     case emptyName
+    case nameTooLong(maximum: Int)
     case emptyEmail
     case invalidEmail
     case emptyPassword
@@ -36,6 +37,7 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
     case emptyConfirmPassword
     case passwordMismatch
     case emptyCompany
+    case companyTooLong(maximum: Int)
     case missingIndustry
     case missingProjectType
     case missingExperience
@@ -45,11 +47,12 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
     case emptyGitHub
     case invalidGitHub
     case emptyInviteCode
+    case invalidInviteCodeFormat(maximum: Int)
 
     /// Campo que hay que marcar en la UI.
     var field: FormField {
         switch self {
-        case .emptyName:
+        case .emptyName, .nameTooLong:
             return .name
         case .emptyEmail, .invalidEmail:
             return .email
@@ -57,7 +60,7 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
             return .password
         case .emptyConfirmPassword, .passwordMismatch:
             return .confirmPassword
-        case .emptyCompany:
+        case .emptyCompany, .companyTooLong:
             return .company
         case .missingIndustry:
             return .industry
@@ -69,7 +72,7 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
             return .technologies
         case .emptyGitHub, .invalidGitHub:
             return .githubURL
-        case .emptyInviteCode:
+        case .emptyInviteCode, .invalidInviteCodeFormat:
             return .inviteCode
         }
     }
@@ -78,6 +81,8 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
         switch self {
         case .emptyName:
             return "Ingresa tu nombre."
+        case .nameTooLong(let maximum):
+            return "El nombre admite hasta \(maximum) caracteres."
         case .emptyEmail:
             return "Ingresa tu correo electrónico."
         case .invalidEmail:
@@ -96,6 +101,8 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
             return "Las contraseñas no coinciden."
         case .emptyCompany:
             return "Ingresa el nombre de tu empresa."
+        case .companyTooLong(let maximum):
+            return "El nombre de la empresa admite hasta \(maximum) caracteres."
         case .missingIndustry:
             return "Elige el rubro de tu empresa."
         case .missingProjectType:
@@ -114,6 +121,8 @@ nonisolated enum ValidationError: LocalizedError, Equatable {
             return "Ingresa un usuario de GitHub válido o un enlace como https://github.com/usuario."
         case .emptyInviteCode:
             return "Ingresa tu código de invitación de mentor."
+        case .invalidInviteCodeFormat(let maximum):
+            return "El código de invitación solo admite letras sin tildes, números, guiones y guiones bajos (hasta \(maximum) caracteres)."
         }
     }
 }

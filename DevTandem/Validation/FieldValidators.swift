@@ -15,7 +15,21 @@ nonisolated enum FieldValidators {
     static let minimumPasswordLength = 8
     static let maximumTechnologies = 15
     static let maximumTechnologyLength = 30
+    static let maximumNameLength = 80
+    static let maximumCompanyLength = 100
+    static let maximumInviteCodeLength = 40
     static let gitHubProfilePrefix = "https://github.com/"
+
+    // Los límites coinciden con las reglas de Realtime Database (firebase/database.rules.json).
+    // Si la app aceptara algo que la regla rechaza, el guardado daría permission_denied y,
+    // para un mentor, se confundiría con un código de invitación inválido.
+    //
+    // Los largos se miden en unidades UTF-16: nunca dan menos que los caracteres visibles ni que
+    // los puntos de código, así que la app nunca es más permisiva que la regla.
+    // (La documentación de Firebase no dice en qué unidad cuenta `length`.)
+    static func textLength(_ text: String) -> Int {
+        text.utf16.count
+    }
 
     // MARK: - Texto obligatorio
 
@@ -33,7 +47,19 @@ nonisolated enum FieldValidators {
     }
 
     static func normalizedName(_ raw: String) throws(ValidationError) -> String {
-        try requiredText(raw, emptyError: .emptyName)
+        let name = try requiredText(raw, emptyError: .emptyName)
+        guard textLength(name) <= maximumNameLength else {
+            throw .nameTooLong(maximum: maximumNameLength)
+        }
+        return name
+    }
+
+    static func normalizedCompany(_ raw: String) throws(ValidationError) -> String {
+        let company = try requiredText(raw, emptyError: .emptyCompany)
+        guard textLength(company) <= maximumCompanyLength else {
+            throw .companyTooLong(maximum: maximumCompanyLength)
+        }
+        return company
     }
 
     // MARK: - Correo
@@ -102,7 +128,7 @@ nonisolated enum FieldValidators {
         guard technologies.count <= maximumTechnologies else {
             throw .tooManyTechnologies(maximum: maximumTechnologies)
         }
-        if let tooLong = technologies.first(where: { $0.count > maximumTechnologyLength }) {
+        if let tooLong = technologies.first(where: { textLength($0) > maximumTechnologyLength }) {
             throw .technologyTooLong(name: tooLong, maximum: maximumTechnologyLength)
         }
         return technologies
@@ -152,9 +178,18 @@ nonisolated enum FieldValidators {
 
     // MARK: - Código de invitación
 
-    /// Se guarda recortado y en mayúsculas. Que el código exista se valida en la Parte B2.
+    /// Solo letras A–Z sin tildes, números, guion y guion bajo: el mismo formato que exige la regla.
+    /// Así el código tampoco puede romper la ruta `inviteCodes/{código}` que consulta la regla.
+    private static let inviteCodePattern = "^[A-Z0-9_-]+$"
+
+    /// Se guarda recortado y en mayúsculas. Que el código exista lo valida la regla de
+    /// Realtime Database al guardar el perfil.
     static func normalizedInviteCode(_ raw: String) throws(ValidationError) -> String {
-        try requiredText(raw, emptyError: .emptyInviteCode).uppercased()
+        let code = try requiredText(raw, emptyError: .emptyInviteCode).uppercased()
+        guard textLength(code) <= maximumInviteCodeLength,
+              matches(code, pattern: inviteCodePattern)
+        else { throw .invalidInviteCodeFormat(maximum: maximumInviteCodeLength) }
+        return code
     }
 
     // MARK: - Utilidades
