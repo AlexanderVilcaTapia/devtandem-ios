@@ -326,6 +326,66 @@ struct AccountServiceTests {
         #expect(log.entries.last == "auth.signOut")
     }
 
+    // MARK: Sesión guardada
+
+    @Test("Sin sesión guardada: no se lee ningún perfil")
+    func restoreWithoutSession() async throws {
+        auth.restoredUserResult = nil
+        let profile = try await service.restoreSession()
+
+        #expect(profile == nil)
+        #expect(log.entries == ["auth.restoredUser"])
+    }
+
+    @Test("Con sesión y perfil: devuelve el perfil sin cerrar la sesión")
+    func restoreWithProfile() async throws {
+        auth.restoredUserResult = AuthUser(uid: "uid-ana", email: "ana@empresa.com")
+        profiles.fetchResult = .success(Self.storedProfile)
+        let profile = try await service.restoreSession()
+
+        #expect(profile == Self.storedProfile)
+        #expect(log.entries == ["auth.restoredUser", "profiles.fetch"])
+    }
+
+    @Test("Con sesión pero sin perfil válido: cierra la sesión e informa profileMissing",
+          arguments: [RemoteDataError.notFound, .incomplete])
+    func restoreWithoutProfile(fetchError: RemoteDataError) async {
+        auth.restoredUserResult = AuthUser(uid: "uid-ana", email: "ana@empresa.com")
+        profiles.fetchResult = .failure(fetchError)
+
+        await #expect(throws: AccountError.profileMissing) {
+            try await service.restoreSession()
+        }
+        #expect(log.entries == ["auth.restoredUser", "profiles.fetch", "auth.signOut"])
+    }
+
+    @Test("Falla de red, timeout o permiso al arrancar: informa el error y conserva la sesión", arguments: [
+        (RemoteDataError.network, AccountError.network),
+        (RemoteDataError.timeout, AccountError.timeout),
+        (RemoteDataError.permissionDenied, AccountError.permissionDenied),
+        (RemoteDataError.unexpected(code: 7), AccountError.unexpected(code: 7))
+    ])
+    func restoreFetchFails(fetchError: RemoteDataError, expected: AccountError) async {
+        auth.restoredUserResult = AuthUser(uid: "uid-ana", email: "ana@empresa.com")
+        profiles.fetchResult = .failure(fetchError)
+
+        await #expect(throws: expected) {
+            try await service.restoreSession()
+        }
+        #expect(!log.entries.contains("auth.signOut"))
+    }
+
+    @Test("Si falla el cierre de sesión tras no encontrar el perfil, igual se informa profileMissing")
+    func restoreWithoutProfileAndSignOutFails() async {
+        auth.restoredUserResult = AuthUser(uid: "uid-ana", email: "ana@empresa.com")
+        profiles.fetchResult = .failure(.notFound)
+        auth.signOutError = .unexpected(code: 17995)
+
+        await #expect(throws: AccountError.profileMissing) {
+            try await service.restoreSession()
+        }
+    }
+
     // MARK: Recuperación y cierre de sesión
 
     @Test("Recuperar contraseña envía el correo recibido")
