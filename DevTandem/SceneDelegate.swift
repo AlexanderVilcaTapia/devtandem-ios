@@ -10,13 +10,19 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
+    /// Decide la pantalla raíz según la sesión. Se guarda aquí para que viva lo mismo que la escena.
+    private var router: AppRouter?
 
-
+    /// La ventana se crea en código (ya no la crea el Storyboard): primero la pantalla de arranque,
+    /// que restaura la sesión y lleva al Login o al Inicio del rol.
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
-        guard let _ = (scene as? UIWindowScene) else { return }
+        guard let windowScene = scene as? UIWindowScene else { return }
+        let window = UIWindow(windowScene: windowScene)
+        self.window = window
+
+        let router = AppRouter(window: window)
+        self.router = router
+        router.start()
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
