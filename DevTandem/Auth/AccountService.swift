@@ -15,34 +15,30 @@ final class AccountService {
 
     private let auth: AuthService
     private let profiles: ProfileRepository
-    private let inviteCodes: InviteCodeVerifier
     private let logger = Logger(subsystem: "com.devtandem.app", category: "AccountService")
 
     init(
         auth: AuthService = FirebaseAuthService(),
-        profiles: ProfileRepository = RealtimeProfileRepository(),
-        inviteCodes: InviteCodeVerifier = RealtimeInviteCodeVerifier()
+        profiles: ProfileRepository = RealtimeProfileRepository()
     ) {
         self.auth = auth
         self.profiles = profiles
-        self.inviteCodes = inviteCodes
     }
 
     // MARK: - Registro
 
-    /// 1. Si es mentor, verifica el código de invitación (si es inválido, no se crea nada).
-    /// 2. Crea la cuenta en Authentication.
-    /// 3. Guarda el perfil en `/users/{uid}`.
-    /// 4. Si el guardado falla: descarta la escritura pendiente y borra la cuenta (rollback).
+    /// 1. Crea la cuenta en Authentication.
+    /// 2. Guarda el perfil en `/users/{uid}`. Las reglas de Realtime Database validan la estructura y,
+    ///    para un mentor, que `mentor/inviteCode` exista en `/inviteCodes` (los clientes no pueden leerlo).
+    /// 3. Si el guardado falla: descarta la escritura pendiente y borra la cuenta (rollback).
     ///    Si el borrado también falla, cierra la sesión y lanza `registrationIncomplete`.
+    ///
+    /// Si un mentor recibe `permissionDenied`, se informa `invalidInviteCode`. La app ya valida antes
+    /// todo lo demás que exigen las reglas (formato, largos, opciones), así que el código es la única
+    /// causa esperable. Costo: un código inválido crea y borra un usuario en Authentication.
     ///
     /// Devuelve el perfil guardado. Su `createdAt` es la hora local; en la base queda la del servidor.
     func register(_ registration: ValidatedRegistration) async throws(AccountError) -> UserProfile {
-        if case .mentor(let mentor) = registration.details {
-            let isValid = try await inviteCodes.isValid(mentor.inviteCode)
-            guard isValid else { throw .invalidInviteCode }
-        }
-
         let user = try await auth.createAccount(email: registration.email, password: registration.password)
         let profile = registration.makeProfile(createdAt: Date())
 
@@ -51,6 +47,9 @@ final class AccountService {
         } catch {
             logger.error("No se guardó el perfil (\(String(describing: error), privacy: .public)); se hace el rollback")
             try await rollbackNewAccount()
+            if registration.role == .mentor, error == .permissionDenied {
+                throw .invalidInviteCode
+            }
             throw .profileSaveFailed
         }
         return profile

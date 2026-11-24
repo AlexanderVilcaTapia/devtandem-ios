@@ -92,23 +92,6 @@ final class FakeProfileRepository: ProfileRepository {
     }
 }
 
-@MainActor
-final class FakeInviteCodeVerifier: InviteCodeVerifier {
-    let log: CallLog
-    var isValidResult = true
-    var error: AccountError?
-    private(set) var receivedCodes: [String] = []
-
-    init(log: CallLog) { self.log = log }
-
-    func isValid(_ code: String) async throws(AccountError) -> Bool {
-        log.entries.append("inviteCodes.isValid")
-        receivedCodes.append(code)
-        if let error { throw error }
-        return isValidResult
-    }
-}
-
 // MARK: - Pruebas
 
 @MainActor
@@ -117,14 +100,12 @@ struct AccountServiceTests {
     let log = CallLog()
     let auth: FakeAuthService
     let profiles: FakeProfileRepository
-    let inviteCodes: FakeInviteCodeVerifier
     let service: AccountService
 
     init() {
         auth = FakeAuthService(log: log)
         profiles = FakeProfileRepository(log: log)
-        inviteCodes = FakeInviteCodeVerifier(log: log)
-        service = AccountService(auth: auth, profiles: profiles, inviteCodes: inviteCodes)
+        service = AccountService(auth: auth, profiles: profiles)
     }
 
     // MARK: Datos
@@ -181,39 +162,64 @@ struct AccountServiceTests {
         #expect(profile.role == .client)
     }
 
-    @Test("Registro de mentor: verifica el código normalizado antes de crear la cuenta")
-    func registerMentorChecksCodeFirst() async throws {
-        _ = try await service.register(try registration(role: .mentor))
-        #expect(log.entries == ["inviteCodes.isValid", "auth.createAccount", "profiles.save"])
-        #expect(inviteCodes.receivedCodes == ["MENTOR2026"])
+    @Test("Registro de mentor: crea la cuenta y guarda el código normalizado en el perfil")
+    func registerMentor() async throws {
+        let profile = try await service.register(try registration(role: .mentor))
+        #expect(log.entries == ["auth.createAccount", "profiles.save"])
+        guard case .mentor(let mentor) = profile.details else {
+            Issue.record("Se esperaba un perfil de mentor")
+            return
+        }
+        #expect(mentor.inviteCode == "MENTOR2026")
     }
 
-    @Test("Código de invitación inválido: no se crea la cuenta")
-    func invalidInviteCode() async throws {
-        inviteCodes.isValidResult = false
+    @Test("Mentor rechazado por la regla: rollback y error de código de invitación")
+    func mentorRejectedByRules() async throws {
+        profiles.saveError = .permissionDenied
         let registration = try registration(role: .mentor)
 
         await #expect(throws: AccountError.invalidInviteCode) {
             try await service.register(registration)
         }
-        #expect(log.entries == ["inviteCodes.isValid"])
+        #expect(log.entries == [
+            "auth.createAccount", "profiles.save",
+            "profiles.discardPendingWrites", "auth.deleteCurrentUser"
+        ])
     }
 
-    @Test("Si no se puede verificar el código, se propaga el error y no se crea la cuenta")
-    func inviteCodeNetworkError() async throws {
-        inviteCodes.error = .network
-        let registration = try registration(role: .mentor)
+    @Test("Cliente o junior rechazado por la regla: no se confunde con un código inválido",
+          arguments: [UserRole.client, .junior])
+    func nonMentorRejectedByRules(role: UserRole) async throws {
+        profiles.saveError = .permissionDenied
+        let registration = try registration(role: role)
 
-        await #expect(throws: AccountError.network) {
+        await #expect(throws: AccountError.profileSaveFailed) {
             try await service.register(registration)
         }
-        #expect(log.entries == ["inviteCodes.isValid"])
+        #expect(log.entries.contains("auth.deleteCurrentUser"))
     }
 
-    @Test("Los roles cliente y junior no consultan códigos de invitación")
-    func nonMentorSkipsInviteCode() async throws {
-        _ = try await service.register(try registration(role: .junior))
-        #expect(!log.entries.contains("inviteCodes.isValid"))
+    @Test("Mentor con falla de red o timeout: se informa el guardado, no el código",
+          arguments: [RemoteDataError.network, .timeout, .unexpected(code: 9999)])
+    func mentorOtherSaveFailures(saveError: RemoteDataError) async throws {
+        profiles.saveError = saveError
+        let registration = try registration(role: .mentor)
+
+        await #expect(throws: AccountError.profileSaveFailed) {
+            try await service.register(registration)
+        }
+    }
+
+    @Test("Mentor rechazado y rollback fallido: la cuenta queda incompleta")
+    func mentorRejectedAndRollbackFails() async throws {
+        profiles.saveError = .permissionDenied
+        auth.deleteError = .network
+        let registration = try registration(role: .mentor)
+
+        await #expect(throws: AccountError.registrationIncomplete) {
+            try await service.register(registration)
+        }
+        #expect(log.entries.last == "auth.signOut")
     }
 
     @Test("Si falla la creación de la cuenta, no se guarda nada")
