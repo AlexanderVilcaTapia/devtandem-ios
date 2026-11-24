@@ -47,4 +47,44 @@ extension UserProfile {
         ))
     )
 }
+
+/// Servicio de autenticación que no toca Firebase, para que los #Preview no dependan de la red
+/// ni de `FirebaseApp.configure()`. Cerrar sesión siempre funciona; lo demás falla.
+final class PreviewAuthService: AuthService {
+    var currentUserID: String? { "uid-vista-previa" }
+
+    func restoredUser() async -> AuthUser? { nil }
+
+    func createAccount(email: String, password: String) async throws(AccountError) -> AuthUser {
+        throw .unexpected(code: -1)
+    }
+
+    func signIn(email: String, password: String) async throws(AccountError) -> AuthUser {
+        throw .unexpected(code: -1)
+    }
+
+    func sendPasswordReset(email: String) async throws(AccountError) {}
+
+    func deleteCurrentUser() async throws(AccountError) {}
+
+    func signOut() throws(AccountError) {}
+}
+
+/// Repositorio de perfiles sin Firebase, para los #Preview.
+final class PreviewProfileRepository: ProfileRepository {
+    func save(_ profile: UserProfile, uid: String) async throws(RemoteDataError) {}
+
+    func fetchProfile(uid: String) async throws(RemoteDataError) -> UserProfile {
+        throw .notFound
+    }
+
+    func discardPendingWrites() {}
+}
+
+extension AccountService {
+    /// `AccountService` para los #Preview: no usa Firebase.
+    static func preview() -> AccountService {
+        AccountService(auth: PreviewAuthService(), profiles: PreviewProfileRepository())
+    }
+}
 #endif
