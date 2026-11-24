@@ -9,13 +9,15 @@ import Foundation
 
 /// Opción de un campo de selección del formulario de perfil.
 /// `rawValue` es la clave estable que se guarda en Firebase; `title` es el texto en español para la UI.
-protocol FormOption: CaseIterable, RawRepresentable, Codable where RawValue == String {
+/// El protocolo y los enums son `nonisolated`: son datos puros y no deben quedar atados a MainActor,
+/// que es la aislación por defecto del target.
+nonisolated protocol FormOption: CaseIterable, RawRepresentable, Codable where RawValue == String {
     var title: String { get }
 }
 
 // MARK: - Cliente
 
-enum ClientIndustry: String, FormOption {
+nonisolated enum ClientIndustry: String, FormOption {
     case retail, education, health, finance, logistics, food, technology, tourism, manufacturing, other
 
     var title: String {
@@ -34,7 +36,7 @@ enum ClientIndustry: String, FormOption {
     }
 }
 
-enum ProjectType: String, FormOption {
+nonisolated enum ProjectType: String, FormOption {
     case landingPage, webSystem, customSoftware, mobileApp, ecommerce, integrations, other
 
     var title: String {
@@ -50,7 +52,7 @@ enum ProjectType: String, FormOption {
     }
 }
 
-enum CompanySize: String, FormOption {
+nonisolated enum CompanySize: String, FormOption {
     case micro, small, medium, large
 
     var title: String {
@@ -65,7 +67,7 @@ enum CompanySize: String, FormOption {
 
 // MARK: - Junior
 
-enum JuniorExperience: String, FormOption {
+nonisolated enum JuniorExperience: String, FormOption {
     case noExperience, lessThanOneYear, oneToTwoYears, twoToThreeYears
 
     var title: String {
@@ -78,7 +80,7 @@ enum JuniorExperience: String, FormOption {
     }
 }
 
-enum WeeklyAvailability: String, FormOption {
+nonisolated enum WeeklyAvailability: String, FormOption {
     case lessThanTenHours, tenToTwentyHours, twentyToThirtyHours, moreThanThirtyHours
 
     var title: String {
@@ -93,7 +95,7 @@ enum WeeklyAvailability: String, FormOption {
 
 // MARK: - Mentor
 
-enum MentorExperience: String, FormOption {
+nonisolated enum MentorExperience: String, FormOption {
     case threeToFiveYears, fiveToEightYears, moreThanEightYears
 
     var title: String {
@@ -105,7 +107,7 @@ enum MentorExperience: String, FormOption {
     }
 }
 
-enum ReviewAvailability: String, FormOption {
+nonisolated enum ReviewAvailability: String, FormOption {
     case lessThanFiveHours, fiveToTenHours, moreThanTenHours
 
     var title: String {
