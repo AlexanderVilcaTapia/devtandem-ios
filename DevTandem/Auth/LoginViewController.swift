@@ -29,6 +29,9 @@ final class LoginViewController: FormViewController {
     @IBOutlet private weak var forgotPasswordButton: UIButton!
     @IBOutlet private weak var createAccountButton: UIButton!
 
+    /// true cuando se vuelve del registro con una cuenta recién creada.
+    private var showsAccountCreatedNotice = false
+
     // MARK: - Ciclo de vida
 
     override func viewDidLoad() {
@@ -57,6 +60,15 @@ final class LoginViewController: FormViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // El aviso se presenta cuando termina la animación de regreso desde el registro.
+        if showsAccountCreatedNotice {
+            showsAccountCreatedNotice = false
+            presentInfoAlert(title: "Cuenta creada", message: "Ya puedes iniciar sesión.")
+        }
     }
 
     override func formDidRequestSubmit() {
@@ -212,6 +224,17 @@ final class LoginViewController: FormViewController {
         else { return }
         let email = emailField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
         destination.prefilledEmail = email
+        destination.onAccountCreated = { [weak self] email in
+            self?.prepareForNewAccount(email: email)
+        }
+    }
+
+    /// Deja el login listo tras crear una cuenta: correo escrito y aviso pendiente.
+    private func prepareForNewAccount(email: String) {
+        clearErrors(in: errorLabel)
+        emailField.text = email
+        passwordField.text = nil
+        showsAccountCreatedNotice = true
     }
 
     // MARK: - Apariencia

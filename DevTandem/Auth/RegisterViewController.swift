@@ -6,13 +6,23 @@
 //
 
 import UIKit
+import os
 
 /// Pantalla de registro: campos comunes y una sección que cambia según el rol elegido.
-/// En la Parte A solo hay interfaz; el registro real se conecta en la Parte B2.
+/// Valida con `FormValidator` y crea la cuenta y el perfil con `AccountService`.
 final class RegisterViewController: FormViewController {
 
     /// Correo escrito en el login, recibido por el segue.
     var prefilledEmail: String?
+
+    /// Se llama con el correo de la cuenta creada, justo antes de volver al login.
+    var onAccountCreated: ((String) -> Void)?
+
+    // MARK: - Dependencias
+
+    /// Se crea al primer uso: la pantalla sale del Storyboard y no recibe dependencias en el init.
+    lazy var accountService = AccountService()
+    private let logger = Logger(subsystem: "com.devtandem.app", category: "RegisterViewController")
 
     // MARK: - Outlets: comunes
 
@@ -81,6 +91,7 @@ final class RegisterViewController: FormViewController {
         passwordField.enablePasswordToggle()
         confirmPasswordField.enablePasswordToggle()
         configureMenus()
+        controlsDisabledWhileLoading = [registerButton, roleSegmentedControl] + menuButtons
 
         if let prefilledEmail, !prefilledEmail.isEmpty {
             emailField.text = prefilledEmail
@@ -106,17 +117,153 @@ final class RegisterViewController: FormViewController {
 
     @IBAction private func roleChanged(_ sender: UISegmentedControl) {
         view.endEditing(true)
-        clearErrors(in: errorLabel)
+        clearAllErrors()
         showSection(for: selectedRole, animated: true)
     }
 
     @IBAction private func registerTapped(_ sender: UIButton) {
         view.endEditing(true)
-        // La validación y el registro con Firebase se conectan en la Parte B2.
+        guard !isLoading else { return }
+        clearAllErrors()
+
+        let registration: ValidatedRegistration
+        do throws(FormValidationError) {
+            registration = try FormValidator.validateRegistration(makeForm())
+        } catch {
+            showErrors(message: error.localizedDescription, fields: error.fields)
+            return
+        }
+
+        setLoading(true, on: registerButton, loadingTitle: "Creando cuenta…")
+        Task { [weak self] in
+            guard let self else { return }
+            let failure: AccountError?
+            do throws(AccountError) {
+                _ = try await self.accountService.register(registration)
+                failure = nil
+            } catch {
+                failure = error
+            }
+            // Primero se quita la carga: con los campos deshabilitados, showError no podría enfocarlos.
+            self.setLoading(false, on: self.registerButton, loadingTitle: "")
+
+            if let failure {
+                self.showErrors(message: failure.localizedDescription, fields: failure.field.map { [$0] } ?? [])
+            } else {
+                self.finishRegistration(email: registration.email)
+            }
+        }
+    }
+
+    /// Provisional hasta la Parte D: se cierra la sesión que abrió Firebase al crear la cuenta
+    /// y se vuelve al login con el correo ya escrito.
+    private func finishRegistration(email: String) {
+        do throws(AccountError) {
+            try accountService.signOut()
+        } catch {
+            // La cuenta y el perfil ya existen: no se bloquea al usuario, solo se registra.
+            logger.error("No se pudo cerrar la sesión tras el registro (\(String(describing: error), privacy: .public))")
+        }
+        onAccountCreated?(email)
+        navigationController?.popViewController(animated: true)
     }
 
     @IBAction private func backToLoginTapped(_ sender: UIButton) {
+        guard !isLoading else { return }
         navigationController?.popViewController(animated: true)
+    }
+
+    // MARK: - Formulario y errores
+
+    /// Datos crudos de la pantalla, tal como los espera `FormValidator`.
+    private func makeForm() -> RegistrationForm {
+        var form = RegistrationForm()
+        form.name = nameField.text ?? ""
+        form.email = emailField.text ?? ""
+        form.password = passwordField.text ?? ""
+        form.confirmPassword = confirmPasswordField.text ?? ""
+        form.role = selectedRole
+
+        form.company = companyField.text ?? ""
+        form.industry = selectedIndustry
+        form.projectType = selectedProjectType
+        form.companySize = selectedCompanySize
+
+        form.juniorExperience = selectedJuniorExperience
+        form.juniorTechnologies = juniorTechnologiesField.text ?? ""
+        form.juniorGitHub = juniorGithubField.text ?? ""
+        form.juniorAvailability = selectedJuniorAvailability
+
+        form.mentorExperience = selectedMentorExperience
+        form.mentorTechnologies = mentorTechnologiesField.text ?? ""
+        form.mentorGitHub = mentorGithubField.text ?? ""
+        form.inviteCode = inviteCodeField.text ?? ""
+        form.mentorAvailability = selectedMentorAvailability
+        return form
+    }
+
+    /// Muestra el mensaje y marca los campos de texto y los menús afectados.
+    private func showErrors(message: String, fields: [FormField]) {
+        fields.compactMap(menuButton(for:)).forEach { setMenu($0, invalid: true) }
+        showError(message, in: errorLabel, invalidFields: fields.compactMap(textField(for:)))
+    }
+
+    private func clearAllErrors() {
+        clearErrors(in: errorLabel)
+        menuButtons.forEach { setMenu($0, invalid: false) }
+    }
+
+    /// Campo de texto del formulario visible. Junior y mentor comparten `FormField`: se elige según el rol.
+    private func textField(for field: FormField) -> PaddedTextField? {
+        switch field {
+        case .name: return nameField
+        case .email: return emailField
+        case .password: return passwordField
+        case .confirmPassword: return confirmPasswordField
+        case .company: return companyField
+        case .technologies:
+            switch selectedRole {
+            case .client: return nil
+            case .junior: return juniorTechnologiesField
+            case .mentor: return mentorTechnologiesField
+            }
+        case .githubURL:
+            switch selectedRole {
+            case .client: return nil
+            case .junior: return juniorGithubField
+            case .mentor: return mentorGithubField
+            }
+        case .inviteCode: return inviteCodeField
+        case .industry, .projectType, .experience: return nil
+        }
+    }
+
+    private func menuButton(for field: FormField) -> UIButton? {
+        switch field {
+        case .industry: return industryButton
+        case .projectType: return projectTypeButton
+        case .experience:
+            switch selectedRole {
+            case .client: return nil
+            case .junior: return juniorExperienceButton
+            case .mentor: return mentorExperienceButton
+            }
+        default: return nil
+        }
+    }
+
+    private var menuButtons: [UIButton] {
+        [industryButton, projectTypeButton, companySizeButton,
+         juniorExperienceButton, juniorAvailabilityButton,
+         mentorExperienceButton, mentorAvailabilityButton]
+    }
+
+    /// Borde rojo en un menú sin elegir, con el mismo estilo que `PaddedTextField`.
+    private func setMenu(_ button: UIButton, invalid: Bool) {
+        guard var configuration = button.configuration else { return }
+        configuration.background.strokeColor = invalid ? .systemRed : nil
+        configuration.background.strokeWidth = invalid ? 1.5 : 0
+        button.configuration = configuration
     }
 
     // MARK: - Rol
@@ -230,9 +377,11 @@ final class RegisterViewController: FormViewController {
         button.configuration = configuration
 
         let actions = Option.allCases.map { option in
-            UIAction(title: option.title) { [weak button] _ in
-                button?.configuration?.title = option.title
-                button?.configuration?.baseForegroundColor = .label
+            UIAction(title: option.title) { [weak self, weak button] _ in
+                guard let button else { return }
+                button.configuration?.title = option.title
+                button.configuration?.baseForegroundColor = .label
+                self?.setMenu(button, invalid: false)
                 onSelect(option)
             }
         }
