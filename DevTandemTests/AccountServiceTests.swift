@@ -29,7 +29,14 @@ final class FakeAuthService: AuthService {
 
     init(log: CallLog) { self.log = log }
 
-    var currentUserID: String? { nil }
+    var restoredUserResult: AuthUser?
+
+    var currentUserID: String? { restoredUserResult?.uid }
+
+    func restoredUser() async -> AuthUser? {
+        log.entries.append("auth.restoredUser")
+        return restoredUserResult
+    }
 
     func createAccount(email: String, password: String) async throws(AccountError) -> AuthUser {
         log.entries.append("auth.createAccount")

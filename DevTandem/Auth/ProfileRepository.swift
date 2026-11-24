@@ -62,7 +62,8 @@ protocol ProfileRepository: AnyObject {
 final class RealtimeProfileRepository: ProfileRepository {
 
     /// Sin conexión, `setValue` no llama a su completion hasta que el servidor confirma,
-    /// así que el guardado necesita un tiempo máximo propio.
+    /// así que el guardado necesita un tiempo máximo propio. La lectura usa el mismo,
+    /// para que el arranque de la app nunca se quede esperando.
     private let saveTimeout: TimeInterval
     private let logger = Logger(subsystem: "com.devtandem.app", category: "ProfileRepository")
 
@@ -136,22 +137,44 @@ final class RealtimeProfileRepository: ProfileRepository {
     // MARK: - Leer
 
     func fetchProfile(uid: String) async throws(RemoteDataError) -> UserProfile {
-        let snapshot: DataSnapshot
-        do {
-            snapshot = try await profileReference(uid: uid).getData()
-        } catch {
-            let nsError = error as NSError
-            logger.error("fetchProfile falló: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)")
-            throw RemoteDataError.fromDatabaseError(error)
+        let result = await read(profileReference(uid: uid))
+        switch result {
+        case .success(let profile):
+            return profile
+        case .failure(let error):
+            throw error
         }
+    }
 
-        guard snapshot.exists() else { throw .notFound }
-        do {
-            return try snapshot.data(as: UserProfile.self)
-        } catch {
-            // No se registra el contenido del perfil: tiene datos personales.
-            logger.error("El perfil existe pero no se pudo decodificar: \(String(describing: type(of: error)), privacy: .public)")
-            throw .incomplete
+    /// Lee y decodifica el perfil, y espera lo que llegue primero: la respuesta o el timeout.
+    /// La decodificación se hace dentro del callback porque `DataSnapshot` no es `Sendable`.
+    private func read(_ reference: DatabaseReference) async -> Result<UserProfile, RemoteDataError> {
+        let timeout = saveTimeout
+        let logger = logger
+        return await withCheckedContinuation { (continuation: CheckedContinuation<Result<UserProfile, RemoteDataError>, Never>) in
+            let gate = ResumeOnceGate(continuation)
+            reference.getData { error, snapshot in
+                if let error {
+                    let nsError = error as NSError
+                    logger.error("fetchProfile falló: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)")
+                    gate.resume(with: .failure(RemoteDataError.fromDatabaseError(error)))
+                    return
+                }
+                guard let snapshot, snapshot.exists() else {
+                    gate.resume(with: .failure(.notFound))
+                    return
+                }
+                do {
+                    gate.resume(with: .success(try snapshot.data(as: UserProfile.self)))
+                } catch {
+                    // No se registra el contenido del perfil: tiene datos personales.
+                    logger.error("El perfil existe pero no se pudo decodificar: \(String(describing: type(of: error)), privacy: .public)")
+                    gate.resume(with: .failure(.incomplete))
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+                gate.resume(with: .failure(.timeout))
+            }
         }
     }
 

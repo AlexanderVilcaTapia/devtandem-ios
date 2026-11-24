@@ -21,6 +21,9 @@ protocol AuthService: AnyObject {
     /// uid del usuario con sesión abierta, o nil si no hay sesión.
     var currentUserID: String? { get }
 
+    /// Usuario de la sesión guardada, una vez que Firebase terminó de cargarla. Se usa al arrancar.
+    func restoredUser() async -> AuthUser?
+
     /// Crea la cuenta. Firebase deja la sesión abierta con el usuario nuevo.
     func createAccount(email: String, password: String) async throws(AccountError) -> AuthUser
     func signIn(email: String, password: String) async throws(AccountError) -> AuthUser
@@ -39,6 +42,24 @@ final class FirebaseAuthService: AuthService {
     private var auth: Auth { Auth.auth() }
 
     var currentUserID: String? { auth.currentUser?.uid }
+
+    /// Firebase carga del llavero, de forma asíncrona, la sesión guardada. Según su documentación,
+    /// la primera invocación de `addStateDidChangeListener` ocurre cuando esa carga terminó, y siempre
+    /// en el hilo principal. Se espera esa primera invocación y se quita el listener.
+    func restoredUser() async -> AuthUser? {
+        let auth = auth
+        return await withCheckedContinuation { (continuation: CheckedContinuation<AuthUser?, Never>) in
+            let gate = ResumeOnceGate(continuation)
+            let registration = ListenerRegistration()
+            registration.handle = auth.addStateDidChangeListener { auth, user in
+                gate.resume(with: user.map { AuthUser(uid: $0.uid, email: $0.email) })
+                if let handle = registration.handle {
+                    auth.removeStateDidChangeListener(handle)
+                    registration.handle = nil
+                }
+            }
+        }
+    }
 
     func createAccount(email: String, password: String) async throws(AccountError) -> AuthUser {
         do {
@@ -85,6 +106,11 @@ final class FirebaseAuthService: AuthService {
         } catch {
             throw translate(error, operation: "signOut")
         }
+    }
+
+    /// Guarda el identificador del listener para poder quitarlo desde su propio callback.
+    private final class ListenerRegistration {
+        var handle: NSObjectProtocol?
     }
 
     /// Traduce el error y registra solo la operación y el código: nunca correo, contraseña ni códigos.

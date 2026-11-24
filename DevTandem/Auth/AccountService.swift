@@ -80,18 +80,42 @@ final class AccountService {
         } catch {
             logger.error("No se pudo leer el perfil tras el login (\(String(describing: error), privacy: .public))")
             signOutQuietly()
-            switch error {
-            case .notFound, .incomplete:
-                throw .profileMissing
-            case .network:
-                throw .network
-            case .timeout:
-                throw .timeout
-            case .permissionDenied:
-                throw .permissionDenied
-            case .unexpected(let code):
-                throw .unexpected(code: code)
+            throw Self.accountError(from: error)
+        }
+    }
+
+    // MARK: - Sesión guardada
+
+    /// Al arrancar: devuelve el perfil de la sesión guardada, o nil si no hay sesión.
+    /// - Sin perfil o perfil incompleto: cierra la sesión y lanza `profileMissing`.
+    /// - Red, timeout, permiso o error inesperado: lanza el error **sin** cerrar la sesión, para que
+    ///   un usuario sin internet no la pierda y pueda reintentar.
+    func restoreSession() async throws(AccountError) -> UserProfile? {
+        guard let user = await auth.restoredUser() else { return nil }
+
+        do throws(RemoteDataError) {
+            return try await profiles.fetchProfile(uid: user.uid)
+        } catch {
+            logger.error("No se pudo leer el perfil al arrancar (\(String(describing: error), privacy: .public))")
+            if error == .notFound || error == .incomplete {
+                signOutQuietly()
             }
+            throw Self.accountError(from: error)
+        }
+    }
+
+    private static func accountError(from error: RemoteDataError) -> AccountError {
+        switch error {
+        case .notFound, .incomplete:
+            return .profileMissing
+        case .network:
+            return .network
+        case .timeout:
+            return .timeout
+        case .permissionDenied:
+            return .permissionDenied
+        case .unexpected(let code):
+            return .unexpected(code: code)
         }
     }
 
