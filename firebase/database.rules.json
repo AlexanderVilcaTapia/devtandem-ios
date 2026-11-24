@@ -1,0 +1,95 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "inviteCodes": {
+      ".read": false,
+      ".write": false
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['name', 'email', 'role', 'createdAt']) && ((newData.child('role').val() == 'client' && newData.hasChild('client') && !newData.hasChild('junior') && !newData.hasChild('mentor')) || (newData.child('role').val() == 'junior' && newData.hasChild('junior') && !newData.hasChild('client') && !newData.hasChild('mentor')) || (newData.child('role').val() == 'mentor' && newData.hasChild('mentor') && !newData.hasChild('client') && !newData.hasChild('junior')))",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 254 && newData.val().matches(/^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z][a-z]+$/)"
+        },
+        "role": {
+          ".validate": "newData.isString() && newData.val().matches(/^(client|junior|mentor)$/) && (!data.exists() || newData.val() == data.val())"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && ((!data.exists() && newData.val() == now) || (data.exists() && newData.val() == data.val()))"
+        },
+        "client": {
+          ".validate": "newData.hasChildren(['company', 'industry', 'projectType'])",
+          "company": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+          },
+          "industry": {
+            ".validate": "newData.isString() && newData.val().matches(/^(retail|education|health|finance|logistics|food|technology|tourism|manufacturing|other)$/)"
+          },
+          "projectType": {
+            ".validate": "newData.isString() && newData.val().matches(/^(landingPage|webSystem|customSoftware|mobileApp|ecommerce|integrations|other)$/)"
+          },
+          "companySize": {
+            ".validate": "newData.isString() && newData.val().matches(/^(micro|small|medium|large)$/)"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "junior": {
+          ".validate": "newData.hasChildren(['experience', 'technologies', 'githubURL'])",
+          "experience": {
+            ".validate": "newData.isString() && newData.val().matches(/^(noExperience|lessThanOneYear|oneToTwoYears|twoToThreeYears)$/)"
+          },
+          "technologies": {
+            ".validate": "newData.hasChild('0') && !newData.hasChild('15')",
+            "$index": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30"
+            }
+          },
+          "githubURL": {
+            ".validate": "newData.isString() && newData.val().beginsWith('https://github.com/') && newData.val().length <= 58 && newData.val().replace('https://github.com/', '').length == newData.val().length - 19 && !newData.val().contains('--') && (newData.val().replace('https://github.com/', '').matches(/^[A-Za-z0-9]$/) || newData.val().replace('https://github.com/', '').matches(/^[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9]$/))"
+          },
+          "availability": {
+            ".validate": "newData.isString() && newData.val().matches(/^(lessThanTenHours|tenToTwentyHours|twentyToThirtyHours|moreThanThirtyHours)$/)"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "mentor": {
+          ".validate": "newData.hasChildren(['experience', 'technologies', 'githubURL', 'inviteCode'])",
+          "experience": {
+            ".validate": "newData.isString() && newData.val().matches(/^(threeToFiveYears|fiveToEightYears|moreThanEightYears)$/)"
+          },
+          "technologies": {
+            ".validate": "newData.hasChild('0') && !newData.hasChild('15')",
+            "$index": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30"
+            }
+          },
+          "githubURL": {
+            ".validate": "newData.isString() && newData.val().beginsWith('https://github.com/') && newData.val().length <= 58 && newData.val().replace('https://github.com/', '').length == newData.val().length - 19 && !newData.val().contains('--') && (newData.val().replace('https://github.com/', '').matches(/^[A-Za-z0-9]$/) || newData.val().replace('https://github.com/', '').matches(/^[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9]$/))"
+          },
+          "inviteCode": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40 && newData.val().matches(/^[A-Z0-9_-]+$/) && root.child('inviteCodes/' + newData.val()).val() == true"
+          },
+          "availability": {
+            ".validate": "newData.isString() && newData.val().matches(/^(lessThanFiveHours|fiveToTenHours|moreThanTenHours)$/)"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
