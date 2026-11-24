@@ -96,6 +96,51 @@ class FormViewController: UIViewController, UITextFieldDelegate, UIGestureRecogn
         }
     }
 
+    // MARK: - Estado de carga
+
+    /// true mientras hay una petición en curso. Las subclases lo revisan para ignorar toques dobles.
+    private(set) var isLoading = false
+
+    /// Controles que se deshabilitan durante la carga, además de los campos de texto:
+    /// botones secundarios, switches, menús y el selector de rol. La subclase lo asigna.
+    var controlsDisabledWhileLoading: [UIControl] = []
+
+    private var idleTitle: String?
+
+    /// Activa o quita el estado de carga. `button` muestra un indicador y `loadingTitle`; al terminar
+    /// recupera su título. Mientras carga: no se puede editar ni volver atrás, y se ignoran los toques dobles.
+    func setLoading(_ loading: Bool, on button: UIButton, loadingTitle: String) {
+        guard loading != isLoading else { return }
+        isLoading = loading
+
+        if loading {
+            view.endEditing(true)
+            idleTitle = button.configuration?.title
+        }
+
+        formFields.forEach { $0.isEnabled = !loading }
+        controlsDisabledWhileLoading
+            .filter { $0 !== button }
+            .forEach { $0.isEnabled = !loading }
+
+        // El botón activo no se deshabilita (se vería gris con el indicador): solo deja de recibir toques.
+        button.isUserInteractionEnabled = !loading
+        if var configuration = button.configuration {
+            configuration.showsActivityIndicator = loading
+            configuration.title = loading ? loadingTitle : idleTitle
+            button.configuration = configuration
+        }
+
+        navigationItem.hidesBackButton = loading
+        navigationController?.interactivePopGestureRecognizer?.isEnabled = !loading
+
+        if loading {
+            UIAccessibility.post(notification: .announcement, argument: loadingTitle)
+        } else {
+            idleTitle = nil
+        }
+    }
+
     // MARK: - Teclado
 
     @objc private func dismissKeyboard() {
