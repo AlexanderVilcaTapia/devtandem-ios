@@ -155,8 +155,8 @@ final class RegisterViewController: FormViewController {
         }
     }
 
-    /// Provisional hasta la Parte D: se cierra la sesión que abrió Firebase al crear la cuenta
-    /// y se vuelve al login con el correo ya escrito.
+    /// Se cierra la sesión que abrió Firebase al crear la cuenta y se vuelve al login con el correo
+    /// ya escrito (decisión de la Parte D: tras registrarse, el usuario ingresa desde el Login).
     private func finishRegistration(email: String) {
         do throws(AccountError) {
             try accountService.signOut()

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import os
 
 /// Pantalla de inicio de sesión: login con Firebase, "Recordar mi correo" y recuperación de contraseña.
 final class LoginViewController: FormViewController {
@@ -14,9 +15,14 @@ final class LoginViewController: FormViewController {
 
     // MARK: - Dependencias
 
-    /// Se crea al primer uso: la pantalla sale del Storyboard y no recibe dependencias en el init.
+    /// Lo asigna `AppRouter` (el mismo para toda la app). Si nadie lo asigna, se crea al primer uso:
+    /// la pantalla sale del Storyboard y no recibe dependencias en el init.
     lazy var accountService = AccountService()
     var rememberedEmailStore = RememberedEmailStore()
+    /// Se llama tras un login correcto con el perfil, para pasar al Inicio del rol.
+    var onLoginSucceeded: ((UserProfile) -> Void)?
+
+    private let logger = Logger(subsystem: "com.devtandem.app", category: "LoginViewController")
 
     // MARK: - Outlets
 
@@ -31,6 +37,8 @@ final class LoginViewController: FormViewController {
 
     /// true cuando se vuelve del registro con una cuenta recién creada.
     private var showsAccountCreatedNotice = false
+    /// Error del arranque (por ejemplo, sesión sin perfil) que se muestra al aparecer la pantalla.
+    private var pendingStartupError: AccountError?
 
     // MARK: - Ciclo de vida
 
@@ -68,6 +76,20 @@ final class LoginViewController: FormViewController {
         if showsAccountCreatedNotice {
             showsAccountCreatedNotice = false
             presentInfoAlert(title: "Cuenta creada", message: "Ya puedes iniciar sesión.")
+        }
+        if let error = pendingStartupError {
+            pendingStartupError = nil
+            showAccountError(error)
+        }
+    }
+
+    /// Muestra en la etiqueta de error un problema detectado al arrancar. Se puede llamar antes de que
+    /// la vista cargue: el mensaje se muestra cuando la pantalla aparece.
+    func showStartupError(_ error: AccountError) {
+        if viewIfLoaded?.window != nil {
+            showAccountError(error)
+        } else {
+            pendingStartupError = error
         }
     }
 
@@ -111,19 +133,28 @@ final class LoginViewController: FormViewController {
                 // "Recordar mi correo" solo se aplica tras un login exitoso.
                 self.rememberedEmailStore.update(email: credentials.email, remember: remember)
                 self.passwordField.text = nil
-                self.showWelcome(profile)
+                self.finishLogin(profile)
             case .failure(let error):
                 self.showAccountError(error)
             }
         }
     }
 
-    /// Provisional hasta la Parte D, que llevará a la pantalla de inicio de cada rol.
-    private func showWelcome(_ profile: UserProfile) {
-        presentInfoAlert(
-            title: "Sesión iniciada",
-            message: "Hola, \(profile.name). Ingresaste como \(profile.role.title)."
-        )
+    /// Pasa al Inicio del rol. Sin `onLoginSucceeded` (error de configuración) no se puede navegar:
+    /// se cierra la sesión y se informa, para no dejar una sesión abierta en el Login.
+    private func finishLogin(_ profile: UserProfile) {
+        guard let onLoginSucceeded else {
+            logger.fault("LoginViewController sin onLoginSucceeded: no se puede abrir el inicio")
+            assertionFailure("LoginViewController sin onLoginSucceeded")
+            do throws(AccountError) {
+                try accountService.signOut()
+            } catch {
+                logger.error("No se pudo cerrar la sesión (\(String(describing: error), privacy: .public))")
+            }
+            showAccountError(.unexpected(code: -1))
+            return
+        }
+        onLoginSucceeded(profile)
     }
 
     // MARK: - Recuperar contraseña
@@ -224,6 +255,7 @@ final class LoginViewController: FormViewController {
         else { return }
         let email = emailField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
         destination.prefilledEmail = email
+        destination.accountService = accountService
         destination.onAccountCreated = { [weak self] email in
             self?.prepareForNewAccount(email: email)
         }

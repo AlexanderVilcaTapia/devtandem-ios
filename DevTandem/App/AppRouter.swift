@@ -54,6 +54,12 @@ final class AppRouter {
             return
         }
         login.accountService = accountService
+        login.onLoginSucceeded = { [weak self] profile in
+            self?.showHome(profile)
+        }
+        if let notice {
+            login.showStartupError(notice)
+        }
         setRoot(navigation, animated: true)
     }
 
