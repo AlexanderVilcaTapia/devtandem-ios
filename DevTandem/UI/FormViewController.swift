@@ -84,8 +84,13 @@ class FormViewController: UIViewController, UITextFieldDelegate, UIGestureRecogn
     }
 
     private func setErrorLabel(_ label: UILabel, visible: Bool) {
+        let shouldHide = !visible
         UIView.animate(withDuration: 0.25) {
-            label.isHidden = !visible
+            // Solo se asigna si cambia: reasignar el mismo valor de isHidden a un arranged subview
+            // deja al UIStackView inconsistente (pasa al mostrar dos errores seguidos).
+            if label.isHidden != shouldHide {
+                label.isHidden = shouldHide
+            }
             label.alpha = visible ? 1 : 0
             self.view.layoutIfNeeded()
         }
