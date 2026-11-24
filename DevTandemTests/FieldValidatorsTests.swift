@@ -192,12 +192,70 @@ struct FieldValidatorsTests {
         }
     }
 
+    // MARK: - Límites alineados con las reglas de Realtime Database
+
+    @Test("El nombre admite hasta 80 unidades UTF-16")
+    func nameLength() throws {
+        let eighty = String(repeating: "é", count: 80)
+        #expect(try FieldValidators.normalizedName(eighty) == eighty)
+        #expect(throws: ValidationError.nameTooLong(maximum: 80)) {
+            try FieldValidators.normalizedName(String(repeating: "a", count: 81))
+        }
+        // Un emoji ocupa 2 unidades UTF-16: 41 emojis son 82 y superan el límite.
+        #expect(throws: ValidationError.nameTooLong(maximum: 80)) {
+            try FieldValidators.normalizedName(String(repeating: "😀", count: 41))
+        }
+    }
+
+    @Test("La empresa admite hasta 100 caracteres y no puede estar vacía")
+    func companyLength() throws {
+        let hundred = String(repeating: "b", count: 100)
+        #expect(try FieldValidators.normalizedCompany("  \(hundred) ") == hundred)
+        #expect(throws: ValidationError.companyTooLong(maximum: 100)) {
+            try FieldValidators.normalizedCompany(String(repeating: "b", count: 101))
+        }
+        #expect(throws: ValidationError.emptyCompany) {
+            try FieldValidators.normalizedCompany("   ")
+        }
+    }
+
+    @Test("Una tecnología con emojis se mide en unidades UTF-16")
+    func technologyLengthUTF16() {
+        let sixteenEmojis = String(repeating: "😀", count: 16) // 32 unidades
+        #expect(throws: ValidationError.technologyTooLong(name: sixteenEmojis, maximum: 30)) {
+            try FieldValidators.validatedTechnologies(sixteenEmojis)
+        }
+    }
+
+    @Test("Códigos de invitación con formato válido", arguments: [
+        ("MENTOR2026", "MENTOR2026"),
+        (" mentor-2026 ", "MENTOR-2026"),
+        ("a_b", "A_B"),
+        (String(repeating: "x", count: 40), String(repeating: "X", count: 40))
+    ])
+    func validInviteCodeFormats(raw: String, expected: String) throws {
+        #expect(try FieldValidators.normalizedInviteCode(raw) == expected)
+    }
+
+    @Test("Códigos de invitación con formato inválido", arguments: [
+        "MENTOR.2026", "MEN/TOR", "MEN TOR", "#MENTOR", "MEN$TOR", "[MENTOR]",
+        "ÑANDÚ", "código", String(repeating: "x", count: 41)
+    ])
+    func invalidInviteCodeFormats(raw: String) {
+        #expect(throws: ValidationError.invalidInviteCodeFormat(maximum: 40)) {
+            try FieldValidators.normalizedInviteCode(raw)
+        }
+    }
+
     // MARK: - Mensajes
 
     @Test("Cada error trae un mensaje en español y apunta a su campo")
     func messagesAndFields() throws {
         let cases: [(ValidationError, FormField)] = [
-            (.emptyName, .name), (.emptyEmail, .email), (.invalidEmail, .email),
+            (.emptyName, .name), (.nameTooLong(maximum: 80), .name),
+            (.emptyEmail, .email), (.invalidEmail, .email),
+            (.companyTooLong(maximum: 100), .company),
+            (.invalidInviteCodeFormat(maximum: 40), .inviteCode),
             (.emptyPassword, .password), (.passwordTooShort(minimum: 8), .password),
             (.passwordMissingLetter, .password), (.passwordMissingNumber, .password),
             (.emptyConfirmPassword, .confirmPassword), (.passwordMismatch, .confirmPassword),

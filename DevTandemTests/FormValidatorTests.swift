@@ -173,6 +173,21 @@ struct FormValidatorTests {
         #expect(errors(of: form) == [.invalidGitHub])
     }
 
+    @Test("Nombre y empresa demasiado largos se informan en el orden de la pantalla")
+    func tooLongClientFields() {
+        var form = validClientForm()
+        form.name = String(repeating: "a", count: 81)
+        form.company = String(repeating: "b", count: 101)
+        #expect(errors(of: form) == [.nameTooLong(maximum: 80), .companyTooLong(maximum: 100)])
+    }
+
+    @Test("Un código de invitación con caracteres no permitidos no llega a Firebase")
+    func invalidInviteCodeFormat() {
+        var form = validMentorForm()
+        form.inviteCode = "mentor.2026"
+        #expect(errors(of: form) == [.invalidInviteCodeFormat(maximum: 40)])
+    }
+
     @Test("Contraseña débil y confirmación distinta se informan juntas")
     func passwordErrors() {
         var form = validClientForm()
